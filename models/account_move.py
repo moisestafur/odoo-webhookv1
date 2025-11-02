@@ -29,11 +29,18 @@ class AccountMove(models.Model):
 
     def _send_invoice_webhook_notification(self, estado):
         url = self.env['ir.config_parameter'].sudo().get_param('invoice_webhook.url')
+        token = self.env['ir.config_parameter'].sudo().get_param('invoice_webhook.token')
 
         if not url:
             _logger.warning("No se encontró el parámetro del sistema 'invoice_webhook.url'.")
             return
-
+        # Token personalizado
+        headers = {
+            "Content-Type": "application/json",
+        }
+        if token:
+            headers["X-Odoo-Token"] = token
+            
         for record in self:
             payload = {
                 "invoice_number": record.name,
@@ -44,12 +51,12 @@ class AccountMove(models.Model):
                 "state": record.state,
                 "edi_state": estado,
             }
-
+            
             _logger.info(f"Enviando webhook a {url} con payload: {payload}")
 
             for intento in range(3):
                 try:
-                    response = requests.post(url, json=payload, timeout=5)
+                    response = requests.post(url, json=payload, headers=headers, timeout=5)
                     if response.ok:
                         mensaje = ""
                         if estado == "sent":
