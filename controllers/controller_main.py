@@ -9,18 +9,17 @@ class InvoicePDFPublicController(http.Controller):
 
     @http.route('/public/invoice/pdf/<int:invoice_id>/<string:token>', type='http', auth='none', methods=['GET'])
     def download_invoice_pdf(self, invoice_id, token):
-        expected_token = request.env['ir.config_parameter'].sudo().get_param('invoice_webhook.token')
-        if token != expected_token:
-            _logger.warning("Token inválido al intentar descargar factura.")
-            return request.not_found()
-
         invoice = request.env['account.move'].sudo().browse(invoice_id)
         if not invoice.exists():
             _logger.warning(f"Factura con ID {invoice_id} no encontrada.")
             return request.not_found()
 
+        if token != invoice.download_token:
+            _logger.warning(f"Token inválido para la factura {invoice.name}.")
+            return request.make_response("Enlace inválido o caducado", [('Content-Type', 'text/plain')])
+
         try:
-            report = request.env['ir.actions.report']._get_report_from_name('account.report_invoice')
+            report = request.env['ir.actions.report']._get_report_from_name('account.report_invoice_with_payments')
             if not report:
                 _logger.error("No se encontró el reporte")
                 return request.make_response("Reporte no encontrado.", [('Content-Type', 'text/plain')])

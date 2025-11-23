@@ -1,13 +1,26 @@
 # -*- coding: utf-8 -*-
-from odoo import models, api
+from odoo import models, api, fields
 import requests
 import logging
 import time
+import secrets
 
 _logger = logging.getLogger(__name__)
 
 class AccountMove(models.Model):
     _inherit = 'account.move'
+
+    download_token = fields.Char(
+        string="Token x Factura",
+        readonly=True,
+        copy=False
+    )
+
+    @api.model
+    def create(self, vals):
+        if 'download_token' not in vals or not vals.get('download_token'):
+            vals['download_token'] = secrets.token_urlsafe(32)
+        return super(AccountMove, self).create(vals)
 
     def write(self, vals):
         """
@@ -31,7 +44,7 @@ class AccountMove(models.Model):
         url = self.env['ir.config_parameter'].sudo().get_param('invoice_webhook.url')
         token = self.env['ir.config_parameter'].sudo().get_param('invoice_webhook.token')
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-
+        
         if not url:
             _logger.warning("No se encontró el parámetro del sistema 'invoice_webhook.url'.")
             return
@@ -43,8 +56,8 @@ class AccountMove(models.Model):
             headers["X-Odoo-Token"] = token
             
         for record in self:
-            #pdf_url = f"{base_url}/report/pdf/account.report_invoice/{record.id}" if record.state != 'draft' else None
-            pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{token}" if record.state != 'draft' else None
+            #pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{token}" if record.state != 'draft' else None
+            pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{record.download_token}"
             payload = {
                 "invoice_number": record.name,
                 "partner_name": record.partner_id.name,
