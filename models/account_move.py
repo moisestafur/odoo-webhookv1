@@ -43,7 +43,7 @@ class AccountMove(models.Model):
     def _send_invoice_webhook_notification(self, estado):
         url = self.env['ir.config_parameter'].sudo().get_param('invoice_webhook.url')
         token = self.env['ir.config_parameter'].sudo().get_param('invoice_webhook.token')
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        #base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         
         if not url:
             _logger.warning("No se encontró el parámetro del sistema 'invoice_webhook.url'.")
@@ -57,7 +57,12 @@ class AccountMove(models.Model):
             
         for record in self:
             #pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{token}" if record.state != 'draft' else None
-            pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{record.download_token}"
+            #pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{record.download_token}"
+            pdf_url = None
+            if estado == "sent" and record.download_token:
+                base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+                pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{record.download_token}"
+
             payload = {
                 "invoice_number": record.name,
                 "partner_name": record.partner_id.name,

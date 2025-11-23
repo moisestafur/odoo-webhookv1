@@ -30,14 +30,17 @@ class InvoicePDFPublicController(http.Controller):
                 'account.report_invoice_with_payments', [invoice.id]
             )
 
+            filename = f"{invoice.name.replace(' ', '')}.pdf"
             return request.make_response(
                 pdf_content,
                 headers=[
                     ('Content-Type', 'application/pdf'),
-                    ('Content-Disposition', f'inline; filename=\"{invoice.name}.pdf\"'),
+                    ('Content-Disposition', f'attachment; filename="{filename}"'),
+                    ('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0'),
                 ],
             )
-
+            return response
+        
         except Exception as e:
             _logger.error(f"Error generando PDF para {invoice.name}: {e}")
             return request.make_response(str(e), [('Content-Type', 'text/plain')])
