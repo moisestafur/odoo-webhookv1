@@ -15,6 +15,7 @@ class AccountMove(models.Model):
         readonly=True,
         copy=False
     )
+    payment_link = fields.Char("Link PDF", readonly=True)
 
     @api.model
     def create(self, vals):
@@ -62,6 +63,7 @@ class AccountMove(models.Model):
             if estado == "sent" and record.download_token:
                 base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
                 pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{record.download_token}"
+                record.payment_link = pdf_url
 
             payload = {
                 "invoice_number": record.name,
