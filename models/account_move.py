@@ -30,6 +30,7 @@ class AccountMove(models.Model):
     def _send_invoice_webhook_notification(self, estado):
         url = self.env['ir.config_parameter'].sudo().get_param('invoice_webhook.url')
         token = self.env['ir.config_parameter'].sudo().get_param('invoice_webhook.token')
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
 
         if not url:
             _logger.warning("No se encontró el parámetro del sistema 'invoice_webhook.url'.")
@@ -42,6 +43,8 @@ class AccountMove(models.Model):
             headers["X-Odoo-Token"] = token
             
         for record in self:
+            #pdf_url = f"{base_url}/report/pdf/account.report_invoice/{record.id}" if record.state != 'draft' else None
+            pdf_url = f"{base_url}/public/invoice/pdf/{record.id}/{token}" if record.state != 'draft' else None
             payload = {
                 "invoice_number": record.name,
                 "partner_name": record.partner_id.name,
@@ -50,6 +53,7 @@ class AccountMove(models.Model):
                 "invoice_date": record.invoice_date.strftime("%Y-%m-%d") if record.invoice_date else None,
                 "state": record.state,
                 "edi_state": estado,
+                "pdf_url": pdf_url,
             }
             
             _logger.info(f"Enviando webhook a {url} con payload: {payload}")
